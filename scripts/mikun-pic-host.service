@@ -1,0 +1,17 @@
+[Unit]
+Description=Mikun Pic Host Service
+After=network.target
+
+[Service]
+User={{USER}}
+Group={{GROUP}}
+WorkingDirectory={{WORKING_DIR}}
+ExecStart={{JAVA_PATH}} -jar {{WORKING_DIR}}/{{JAR_NAME}}
+Restart=always
+RestartSec=10
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier={{SERVICE_NAME}}
+
+[Install]
+WantedBy=multi-user.target

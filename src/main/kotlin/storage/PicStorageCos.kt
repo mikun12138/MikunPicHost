@@ -52,9 +52,6 @@ class PicStorageCos : PicStorage() {
                                     "secretId" to config.property("storage.cos.secretId").getString(),
                                     "secretKey" to config.property("storage.cos.secretKey").getString(),
                                     "durationSeconds" to 1800,
-                                    // 似乎不是必要
-//                        "bucket" to "test-1324551995",
-//                        "region" to "ap-shanghai",
                                     "policy" to Jackson.toJsonPrettyString(policy),
                                 ),
                             )
