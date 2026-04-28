@@ -4,7 +4,7 @@ JAR_URL="https://github.com/mikun12138/MikunPicHost/releases/download/v0.0.1/Mik
 WORKING_DIR="/opt/mikun-pic-host"
 JAR_NAME="MikunPicHost.jar"
 
-SERVICE_FILE_URL="https://github.com/mikun12138/MikunPicHost/scripts/mikun-pic-host.service"
+SERVICE_FILE_URL="https://raw.githubusercontent.com/mikun12138/MikunPicHost/refs/heads/master/scripts/mikun-pic-host.service"
 
 SERVICE_FILE="mikun-pic-host.service"
 
