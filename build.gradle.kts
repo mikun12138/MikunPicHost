@@ -37,6 +37,7 @@ dependencies {
 //    implementation("ch.qos.logback:logback-classic:$logback_version")
     implementation("io.ktor:ktor-server-config-yaml")
     implementation("io.ktor:ktor-server-rate-limit")
+    implementation("io.ktor:ktor-server-forwarded-header")
 
     implementation("org.apache.logging.log4j:log4j-api:2.25.3")
     implementation("org.apache.logging.log4j:log4j-core:2.25.3")
@@ -56,13 +57,16 @@ configurations.all {
     exclude(group = "ch.qos.logback")
 }
 
-tasks.withType<Jar> {
+// em...without this i need build twice...
+tasks.named("processResources") {
     dependsOn("buildOpenApi")
+}
+
+tasks.withType<Jar> {
     exclude("application.yaml")
 }
 
 tasks.withType<ShadowJar> {
-    dependsOn("buildOpenApi")
     exclude("application.yaml")
 }
 

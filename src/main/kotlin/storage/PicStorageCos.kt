@@ -10,7 +10,6 @@ import com.qcloud.cos.region.Region
 import io.ktor.server.application.*
 import java.io.InputStream
 
-
 class PicStorageCos : PicStorage() {
     private lateinit var cosClient: COSClient
     private lateinit var bucket: Bucket
