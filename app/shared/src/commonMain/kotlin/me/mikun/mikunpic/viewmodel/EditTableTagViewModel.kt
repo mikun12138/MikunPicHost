@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import me.mikun.mikunpic.client.Client
-import me.mikun.mikunpic.dto.data.api.OhMyRouting.Manage.Pic.Random.TagFilter
+import me.mikun.mikunpic.dto.data.api.OhMyRouting
 
 class EditTableTagViewModel : ViewModel() {
     private companion object {
@@ -87,8 +87,8 @@ class EditTableTagViewModel : ViewModel() {
                     count = IMAGE_PAGE_SIZE,
                     page = imagePage,
                     tagFilter = selectedTags.takeIf { it.isNotEmpty() }?.let {
-                        TagFilter.All(it)
-                    } ?: TagFilter.Any,
+                        OhMyRouting.Manage.Pic.TagFilter.All(it)
+                    } ?: OhMyRouting.Manage.Pic.TagFilter.Any,
                     storageLabels = listOf(storageLabel),
                 )?.label2Pics.orEmpty().flatMap { (storageLabel, pics) ->
                     pics.map { storageLabel to it.id }

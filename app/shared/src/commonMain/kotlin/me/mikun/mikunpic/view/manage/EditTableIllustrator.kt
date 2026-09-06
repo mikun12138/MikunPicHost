@@ -35,7 +35,6 @@ import me.mikun.mikunpic.component.card.AcrylicCard
 import me.mikun.mikunpic.component.image.SizeCachedImage
 import me.mikun.mikunpic.dto.data.Illustrator
 import me.mikun.mikunpic.dto.data.api.OhMyRouting
-import me.mikun.mikunpic.dto.data.api.OhMyRouting.Manage.Pic.Random.IllustratorFilter
 
 @Composable
 fun EditTableIllustrator() {
@@ -116,8 +115,8 @@ private fun IllustratorCard(
             value = buildMap {
                 val label2Pics = Client.randomPic(
                     count = picPreviewCount,
-                    illustratorFilter = illustrator.id?.let { IllustratorFilter.Ids(listOf(it)) }
-                        ?: IllustratorFilter.Any,
+                    illustratorFilter = illustrator.id?.let { OhMyRouting.Manage.Pic.IllustratorFilter.Ids(listOf(it)) }
+                        ?: OhMyRouting.Manage.Pic.IllustratorFilter.Any,
                 )?.label2Pics
                 label2Pics?.forEach { (label, pics) ->
                     pics.forEach {

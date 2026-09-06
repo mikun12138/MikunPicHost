@@ -68,7 +68,7 @@ fun TagCardPopup(
             val label2Pics = Client.listPic(
                 page = page,
                 count = picCountPerPage,
-                tagFilter = OhMyRouting.Manage.Pic.Random.TagFilter.All(listOf(tag)),
+                tagFilter = OhMyRouting.Manage.Pic.TagFilter.All(listOf(tag)),
             )?.label2Pics
             label2Pics?.forEach { (label, pics) ->
                 pics.forEach {

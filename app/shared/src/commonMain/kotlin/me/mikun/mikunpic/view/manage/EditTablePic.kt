@@ -68,8 +68,7 @@ import me.mikun.mikunpic.component.act.TagCardPopup
 import me.mikun.mikunpic.component.card.AcrylicCard
 import me.mikun.mikunpic.dto.data.Illustrator
 import me.mikun.mikunpic.dto.data.Pic
-import me.mikun.mikunpic.dto.data.api.OhMyRouting.Manage.Pic.Random.IllustratorFilter
-import me.mikun.mikunpic.dto.data.api.OhMyRouting.Manage.Pic.Random.TagFilter
+import me.mikun.mikunpic.dto.data.api.OhMyRouting
 import me.mikun.mikunpic.viewmodel.ManageViewModel
 import kotlin.collections.emptyList
 
@@ -166,7 +165,7 @@ fun EditTablePic(
                 val (storageLabel, pic) = Client.randomPic(
                     count = 1,
                     storageLabels = listOf(currentStorageLabel),
-                    illustratorFilter = IllustratorFilter.None,
+                    illustratorFilter = OhMyRouting.Manage.Pic.IllustratorFilter.None,
                 )?.label2Pics?.firstPicWithStorage() ?: ("" to null)
                 storageLabelOnTable = storageLabel
                 picOnTable = pic
@@ -179,7 +178,7 @@ fun EditTablePic(
                 val (storageLabel, pic) = Client.randomPic(
                     count = 1,
                     storageLabels = listOf(currentStorageLabel),
-                    tagFilter = TagFilter.None,
+                    tagFilter = OhMyRouting.Manage.Pic.TagFilter.None,
                 )?.label2Pics?.firstPicWithStorage() ?: ("" to null)
                 storageLabelOnTable = storageLabel
                 picOnTable = pic

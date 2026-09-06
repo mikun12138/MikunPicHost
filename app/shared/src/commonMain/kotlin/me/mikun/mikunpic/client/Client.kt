@@ -168,10 +168,10 @@ object Client {
 
     suspend fun randomPic(
         count: Int = 1,
-        illustratorFilter: OhMyRouting.Manage.Pic.Random.IllustratorFilter =
-            OhMyRouting.Manage.Pic.Random.IllustratorFilter.Any,
-        tagFilter: OhMyRouting.Manage.Pic.Random.TagFilter =
-            OhMyRouting.Manage.Pic.Random.TagFilter.Any,
+        illustratorFilter: OhMyRouting.Manage.Pic.IllustratorFilter =
+            OhMyRouting.Manage.Pic.IllustratorFilter.Any,
+        tagFilter: OhMyRouting.Manage.Pic.TagFilter =
+            OhMyRouting.Manage.Pic.TagFilter.Any,
         storageLabels: List<String> = emptyList(),
     ) = httpClient
         .post(
@@ -192,10 +192,10 @@ object Client {
     suspend fun listPic(
         count: Int,
         page: Int = 1,
-        illustratorFilter: OhMyRouting.Manage.Pic.Random.IllustratorFilter =
-            OhMyRouting.Manage.Pic.Random.IllustratorFilter.Any,
-        tagFilter: OhMyRouting.Manage.Pic.Random.TagFilter =
-            OhMyRouting.Manage.Pic.Random.TagFilter.Any,
+        illustratorFilter: OhMyRouting.Manage.Pic.IllustratorFilter =
+            OhMyRouting.Manage.Pic.IllustratorFilter.Any,
+        tagFilter: OhMyRouting.Manage.Pic.TagFilter =
+            OhMyRouting.Manage.Pic.TagFilter.Any,
         storageLabels: List<String> = emptyList(),
     ) = httpClient
         .post(
