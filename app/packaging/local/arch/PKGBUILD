@@ -1,0 +1,95 @@
+pkgname=mikunpicc
+pkgver=0.2.1
+pkgrel=1
+pkgdesc='Desktop picture manager and viewer'
+arch=('x86_64')
+url='https://github.com/mikun12138/MikunPic'
+license=('unknown')
+options=('!debug')
+source=()
+sha256sums=()
+
+_repo_name='MikunPic'
+_dist_name='mikunpic'
+_build_type='main-release'
+_gradle_task=':app:desktopApp:createReleaseDistributable'
+_install_dir='/opt/mikunpicc'
+
+_source_dir() {
+  cd "$(dirname "$BASH_SOURCE")/../../../.." && pwd
+}
+
+prepare() {
+  local repo_root
+
+  repo_root="$(_source_dir)" || return
+  cd "$repo_root"
+
+  chmod +x gradlew
+}
+
+build() {
+  local repo_root
+
+  repo_root="$(_source_dir)" || return
+  cd "$repo_root"
+
+  ./gradlew --no-daemon "$_gradle_task"
+}
+
+package() {
+  local repo_root
+  local compose_app_dir
+  local app_dir
+  local launcher
+  local launcher_name
+  local icon_source
+
+  repo_root="$(_source_dir)" || return
+  compose_app_dir="$repo_root/app/desktopApp/build/compose/binaries/$_build_type/app"
+  app_dir="$compose_app_dir/$_dist_name"
+
+  if [[ ! -d "$compose_app_dir" ]]; then
+    echo "Missing Compose Desktop app directory: $compose_app_dir" >&2
+    return 1
+  fi
+
+  if [[ ! -d "$app_dir" ]]; then
+    app_dir="$(find "$compose_app_dir" -mindepth 1 -maxdepth 1 -type d -print -quit)"
+  fi
+  if [[ -z "$app_dir" || ! -d "$app_dir" ]]; then
+    echo "Missing Compose Desktop distributable under $compose_app_dir" >&2
+    return 1
+  fi
+
+  install -dm755 "$pkgdir$_install_dir"
+  cp -a "$app_dir"/. "$pkgdir$_install_dir/"
+
+  launcher="$(find "$app_dir/bin" -maxdepth 1 -type f -perm -111 -print -quit)"
+  if [[ -z "$launcher" ]]; then
+    echo "Missing launcher in $app_dir/bin" >&2
+    return 1
+  fi
+  launcher_name="$(basename "$launcher")"
+
+  install -dm755 "$pkgdir/usr/bin"
+  ln -s "$_install_dir/bin/$launcher_name" "$pkgdir/usr/bin/$pkgname"
+
+  icon_source="$(find "$pkgdir$_install_dir/lib" -maxdepth 1 -type f -iname '*.png' -print -quit)"
+  if [[ -n "$icon_source" ]]; then
+    install -Dm644 "$icon_source" "$pkgdir/usr/share/pixmaps/$pkgname.png"
+  fi
+
+  install -dm755 "$pkgdir/usr/share/applications"
+  cat > "$pkgdir/usr/share/applications/$pkgname.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=mikunpicc
+Comment=Desktop client for mikunpicc
+Exec=$pkgname
+Icon=$pkgname
+Terminal=false
+Categories=Graphics;Viewer;
+StartupWMClass=$launcher_name
+EOF
+}

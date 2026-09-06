@@ -80,10 +80,10 @@ val archLogDir = layout.buildDirectory.dir("arch/log")
 val buildArchPackage by tasks.registering(Exec::class) {
     group = "dev"
 
-    workingDir = layout.projectDirectory.dir("app/packaging/arch").asFile
+    workingDir = layout.projectDirectory.dir("app/packaging/local/arch").asFile
     commandLine("makepkg", "--force", "--cleanbuild")
 
-    inputs.file(layout.projectDirectory.file("app/packaging/arch/PKGBUILD"))
+    inputs.file(layout.projectDirectory.file("app/packaging/local/arch/PKGBUILD"))
     outputs.dir(archPackageOutputDir)
     outputs.upToDateWhen { false }
 
@@ -153,7 +153,7 @@ val collectBuildAllOutputs by tasks.registering(Sync::class) {
 
     from(archPackageOutputDir) {
         include("*.pkg.tar.*")
-        into("arch")
+        into("desktop")
     }
 }
 
