@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-JAR_URL="${JAR_URL:-https://github.com/mikun12138/MikunPic/releases/download/v0.2.0/mikunpic-0.2.0.jar}"
+JAR_URL="${JAR_URL:-https://github.com/mikun12138/MikunPic/releases/download/v0.2.1/mikunpic-0.2.1.jar}"
 JAR_NAME="${JAR_NAME:-mikunpic.jar}"
 SERVICE_NAME="${SERVICE_NAME:-mikunpic}"
 WORKING_DIR="${MIKUNPIC_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/mikunpic}"
