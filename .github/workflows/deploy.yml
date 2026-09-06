@@ -51,7 +51,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          source: "server/build/libs/mikunpic-0.2.0.jar"
+          source: "server/build/libs/mikunpic-0.2.1.jar"
           target: "~/.config/mikunpic/temp/"
           strip_components: 3
 
@@ -85,5 +85,5 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            SOURCE_JAR="$HOME/.config/mikunpic/temp/mikunpic-0.2.0.jar" \
+            SOURCE_JAR="$HOME/.config/mikunpic/temp/mikunpic-0.2.1.jar" \
               bash "$HOME/.config/mikunpic/temp/install-user.sh"
