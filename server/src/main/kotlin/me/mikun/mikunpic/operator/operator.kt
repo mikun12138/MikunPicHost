@@ -16,9 +16,7 @@ suspend fun Route.uploadPic(
     storageLabel: String,
     byteArray: ByteArray,
     pic: PicCreate,
-    uploadFile: Boolean = true,
 ) {
-    // TODO:: hash, no
     val hash = Digest("md5").let {
         it += byteArray
         it.build()
@@ -31,17 +29,15 @@ suspend fun Route.uploadPic(
             return
         }
 
-        if (uploadFile) {
-            PicStorage.upload(
-                storageLabel,
-                byteArray,
-                pic.storeKey,
-            )
-        }
-
         createPic(
             pic = pic,
             hash = hash,
+        )
+
+        PicStorage.upload(
+            storageLabel,
+            byteArray,
+            pic.storeKey,
         )
     }
 }
@@ -73,16 +69,21 @@ suspend fun Route.sync(
                 filename = { it },
             ) ?: return
 
-            uploadPic(
-                storageLabel = storage.label,
-                byteArray = storage.byKey(
-                    key = picKey,
-                )!!.toByteReadChannel()
-                    .readRemaining()
-                    .readByteArray(),
-                pic = picCreate,
-                uploadFile = false,
-            )
+            val hash = storage.hash(picKey) ?: error("no hash")
+            println("$hash: $picKey")
+
+            StorageDB.byNameNoEx(storageLabel)?.apply {
+                selectPic(
+                    hash = hash,
+                )?.run {
+                    return
+                }
+
+                createPic(
+                    pic = picCreate,
+                    hash = hash,
+                )
+            }
         }
     }
 }

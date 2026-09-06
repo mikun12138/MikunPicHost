@@ -1,0 +1,55 @@
+pkgname=mikunpic
+pkgver=0.2.1
+pkgrel=1
+pkgdesc='MikunPic server'
+arch=('any')
+url='https://github.com/mikun12138/MikunPic'
+license=('unknown')
+options=('!debug')
+source=()
+sha256sums=()
+
+_gradle_task=':server:shadowJar'
+_jar_name="mikunpic-$pkgver.jar"
+_install_dir='/opt/mikunpic'
+
+_source_dir() {
+  cd "$(dirname "$BASH_SOURCE")/../../../.." && pwd
+}
+
+build() {
+  local repo_root
+
+  repo_root="$(_source_dir)" || return
+  cd "$repo_root"
+
+  ./gradlew --no-daemon "$_gradle_task"
+}
+
+package() {
+  local repo_root
+
+  repo_root="$(_source_dir)" || return
+  install -Dm644 "$repo_root/server/build/libs/$_jar_name" \
+    "$pkgdir$_install_dir/$_jar_name"
+
+  install -Dm755 /dev/stdin "$pkgdir/usr/bin/$pkgname" <<EOF
+#!/usr/bin/env bash
+exec /usr/bin/java -jar $_install_dir/$_jar_name "\$@"
+EOF
+
+  install -Dm644 /dev/stdin \
+    "$pkgdir/usr/lib/systemd/system/$pkgname.service" <<EOF
+[Unit]
+Description=mikunpic
+After=network.target
+
+[Service]
+WorkingDirectory=$_install_dir
+ExecStart=/usr/bin/java -jar $_install_dir/$_jar_name --deploy-mode=sys
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+}

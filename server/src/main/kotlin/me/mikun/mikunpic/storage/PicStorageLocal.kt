@@ -1,6 +1,7 @@
 package me.mikun.mikunpic.storage
 
 import io.ktor.server.application.Application
+import io.ktor.util.Digest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.mikun.mikunpic.dto.data.MikunPicConfig
@@ -132,6 +133,16 @@ class PicStorageLocal(
 
             findExist(10)
         }
+    }
+
+    override suspend fun hash(
+        key: String,
+    ): String? {
+        val bytes = byKey(key)?.readBytes() ?: return null
+        return Digest("md5").let {
+            it += bytes
+            it.build()
+        }.toHexString()
     }
 
     override suspend fun byKey(

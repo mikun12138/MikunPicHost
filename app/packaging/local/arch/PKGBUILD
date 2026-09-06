@@ -1,7 +1,7 @@
 pkgname=mikunpicc
 pkgver=0.2.1
 pkgrel=1
-pkgdesc='Desktop picture manager and viewer'
+pkgdesc='mikunpicc'
 arch=('x86_64')
 url='https://github.com/mikun12138/MikunPic'
 license=('unknown')

@@ -143,6 +143,10 @@ sealed class PicStorage {
 
     abstract suspend fun random(): InputStream?
 
+    abstract suspend fun hash(
+        key: String,
+    ): String?
+
     abstract suspend fun byKey(
         key: String,
         thumbnail: OhMyRouting.Pic.Thumbnail = OhMyRouting.Pic.Thumbnail.Orig,
