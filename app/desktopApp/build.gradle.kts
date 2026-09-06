@@ -26,7 +26,7 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = rootProject.name
+            packageName = "mikunpicc"
             packageVersion = project.version.toString()
         }
     }

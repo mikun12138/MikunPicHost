@@ -1,4 +1,4 @@
-pkgname=mikunpic
+pkgname=mikunpicc
 pkgver=0.2.0
 pkgrel=1
 pkgdesc='Desktop picture manager and viewer'
@@ -13,7 +13,7 @@ _repo_name='MikunPic'
 _dist_name='mikunpic'
 _build_type='main-release'
 _gradle_task=':app:desktopApp:createReleaseDistributable'
-_install_dir='/opt/mikunpic'
+_install_dir='/opt/mikunpicc'
 
 _source_dir() {
   local dir
@@ -95,8 +95,8 @@ package() {
   cat > "$pkgdir/usr/share/applications/$pkgname.desktop" <<EOF
 [Desktop Entry]
 Type=Application
-Name=MikunPic
-Comment=Desktop client for MikunPic
+Name=mikunpicc
+Comment=Desktop client for mikunpicc
 Exec=$pkgname
 Icon=$pkgname
 Terminal=false

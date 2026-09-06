@@ -5,12 +5,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import kotlinx.browser.window
 import kotlinx.coroutines.await
-import kotlinx.io.files.Path
 import kotlinx.serialization.decodeFromString
 import net.mamoe.yamlkt.Yaml
 import org.w3c.fetch.RequestInit
 
-private val configFile = Path(ClientAppDirs.config, "config.yaml").toString()
+private val configFile = "${ClientAppDirs.config}/$CONFIG_FILE_NAME"
 
 @Composable
 actual fun LoadConfig(): Config {
@@ -23,7 +22,7 @@ actual fun LoadConfig(): Config {
 
             val text = response.text().await()
             require(!text.trimStart().startsWith("<")) {
-                "/config/config.yaml is missing or returned HTML"
+                "$configFile is missing or returned HTML"
             }
 
             Yaml.decodeFromString<Config>(text)

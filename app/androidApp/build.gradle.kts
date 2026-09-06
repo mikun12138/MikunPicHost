@@ -22,11 +22,11 @@ dependencies {
 }
 
 android {
-    namespace = project.group.toString()
+    namespace = "mikunpicc"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = project.group.toString()
+        applicationId = "mikunpicc"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 2
