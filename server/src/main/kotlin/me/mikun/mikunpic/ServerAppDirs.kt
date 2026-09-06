@@ -39,6 +39,14 @@ abstract class ServerAppDirs {
 
         fun init(
             appName: String,
+            dirs: ServerAppDirs = Sandbox
+        ) {
+            Companion.appName = appName
+            delegate = dirs
+        }
+
+        fun init(
+            appName: String,
             deployType: DeployType,
         ) {
             Companion.appName = appName
@@ -48,24 +56,58 @@ abstract class ServerAppDirs {
                 DeployType.Portable -> Linux.Portable
             }
         }
+
+    }
+
+    object Sandbox : ServerAppDirs() {
+        private val root by lazy {
+            Path.of("sandbox", appName)
+        }
+        override val data: String by lazy {
+            root.resolve("data").toString()
+        }
+
+        override val config: String by lazy {
+            root.resolve("config").toString()
+        }
+
+        override val cache: String by lazy {
+            root.resolve("cache").toString()
+        }
+
+        override val runtime: String by lazy {
+            root.resolve("runtime").toString()
+        }
     }
 
     object Linux {
         object Sys : ServerAppDirs() {
             override val data: String by lazy {
-                Path.of("/var/lib", appName).toString()
+                Path.of(
+                    "/var/lib",
+                    appName
+                ).toString()
             }
 
             override val config: String by lazy {
-                Path.of("/etc", appName).toString()
+                Path.of(
+                    "/etc",
+                    appName
+                ).toString()
             }
 
             override val cache: String by lazy {
-                Path.of("/var/cache", appName).toString()
+                Path.of(
+                    "/var/cache",
+                    appName
+                ).toString()
             }
 
             override val runtime: String by lazy {
-                Path.of("/run", appName).toString()
+                Path.of(
+                    "/run",
+                    appName
+                ).toString()
             }
         }
 
@@ -83,7 +125,11 @@ abstract class ServerAppDirs {
                 Path.of(
                     xdgDir(
                         "XDG_DATA_HOME",
-                        Path.of(System.getProperty("user.home"), ".local", "share").toString(),
+                        Path.of(
+                            System.getProperty("user.home"),
+                            ".local",
+                            "share"
+                        ).toString(),
                     ),
                     appName,
                 ).toString()
@@ -93,7 +139,10 @@ abstract class ServerAppDirs {
                 Path.of(
                     xdgDir(
                         "XDG_CONFIG_HOME",
-                        Path.of(System.getProperty("user.home"), ".config").toString(),
+                        Path.of(
+                            System.getProperty("user.home"),
+                            ".config"
+                        ).toString(),
                     ),
                     appName,
                 ).toString()
@@ -103,7 +152,10 @@ abstract class ServerAppDirs {
                 Path.of(
                     xdgDir(
                         "XDG_CACHE_HOME",
-                        Path.of(System.getProperty("user.home"), ".cache").toString(),
+                        Path.of(
+                            System.getProperty("user.home"),
+                            ".cache"
+                        ).toString(),
                     ),
                     appName,
                 ).toString()
@@ -144,24 +196,20 @@ abstract class ServerAppDirs {
                 }
             }
 
-            private fun child(name: String): String {
-                return root.resolve(name).toString()
-            }
-
             override val data: String by lazy {
-                child("data")
+                root.resolve("data").toString()
             }
 
             override val config: String by lazy {
-                child("config")
+                root.resolve("config").toString()
             }
 
             override val cache: String by lazy {
-                child("cache")
+                root.resolve("cache").toString()
             }
 
             override val runtime: String by lazy {
-                child("runtime")
+                root.resolve("runtime").toString()
             }
         }
     }

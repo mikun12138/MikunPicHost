@@ -22,9 +22,10 @@ fun main(args: Array<String>) {
     val deployMode = args.firstOrNull { it.startsWith(DEPLOY_MODE_PREFIX) }
         ?.removePrefix(DEPLOY_MODE_PREFIX)
         ?.let(ServerAppDirs.DeployType::byValue)
-        ?: error("Missing --deploy-mode=sys|user|portable")
 
-    ServerAppDirs.init(APP_NAME, deployMode)
+    deployMode?.let { deployMode ->
+        ServerAppDirs.init(APP_NAME, deployMode)
+    } ?: ServerAppDirs.init(APP_NAME)
 
     EngineMain.main(
         args.filterNot { it.startsWith(DEPLOY_MODE_PREFIX) }.toTypedArray(),
