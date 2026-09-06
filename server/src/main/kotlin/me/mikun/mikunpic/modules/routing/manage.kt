@@ -171,6 +171,23 @@ fun Route.manage() {
             call.respond(HttpStatusCode.Created)
         }
 
+        post<OhMyRouting.Manage.Pic.List> {
+            val receive = call.receive<OhMyRouting.Manage.Pic.List.Body>()
+            StorageDB.listPic(
+                receive.storageLabels.toSet(),
+                receive.count,
+                receive.page,
+                receive.illustrator,
+                receive.tag,
+            ).let { label2Pics ->
+                call.respond(
+                    OhMyRouting.Manage.Pic.List.Response(
+                        label2Pics = label2Pics,
+                    ),
+                )
+            }
+        }
+
         post<OhMyRouting.Manage.Pic.Random> {
             val receive = call.receive<OhMyRouting.Manage.Pic.Random.Body>()
             StorageDB.randomPic(

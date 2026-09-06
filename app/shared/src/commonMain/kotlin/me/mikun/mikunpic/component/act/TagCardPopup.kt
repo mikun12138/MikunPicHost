@@ -2,6 +2,8 @@ package me.mikun.mikunpic.component.act
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,7 +14,12 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -20,6 +27,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -30,9 +38,7 @@ import androidx.compose.ui.window.DialogProperties
 import me.mikun.mikunpic.client.Client
 import me.mikun.mikunpic.component.card.AcrylicCard
 import me.mikun.mikunpic.component.image.SizeCachedImage
-import me.mikun.mikunpic.dto.data.Illustrator
 import me.mikun.mikunpic.dto.data.api.OhMyRouting
-import me.mikun.mikunpic.dto.data.api.OhMyRouting.Manage.Pic.Random.IllustratorFilter
 import kotlin.collections.buildMap
 
 @Composable
@@ -54,10 +60,14 @@ fun TagCardPopup(
         )
     }
 
-    val images by produceState(emptyList()) {
+    var page by remember { mutableStateOf(1) }
+    val picCountPerPage = 20
+
+    val images by produceState(emptyList(), page) {
         value = buildMap {
-            val label2Pics = Client.randomPic(
-                count = Int.MAX_VALUE,
+            val label2Pics = Client.listPic(
+                page = page,
+                count = picCountPerPage,
                 tagFilter = OhMyRouting.Manage.Pic.Random.TagFilter.All(listOf(tag)),
             )?.label2Pics
             label2Pics?.forEach { (label, pics) ->
@@ -78,6 +88,7 @@ fun TagCardPopup(
                     .fillMaxWidth(0.9f)
                     .fillMaxHeight(0.85f),
             ) {
+
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(3),
                     modifier = Modifier
@@ -87,7 +98,36 @@ fun TagCardPopup(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
-                        Profile(tag)
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            FilledIconButton(
+                                enabled = page > 1,
+                                onClick = {
+                                    page -= 1
+                                },
+                                modifier = Modifier.align(Alignment.CenterStart),
+                            ) {
+                                Icon(Icons.AutoMirrored.Default.KeyboardArrowLeft, null)
+                            }
+
+                            Profile(
+                                name = tag,
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .fillMaxWidth()
+                            )
+
+                            FilledIconButton(
+                                enabled = images.size >= picCountPerPage,
+                                onClick = {
+                                    page += 1
+                                },
+                                modifier = Modifier.align(Alignment.CenterEnd),
+                            ) {
+                                Icon(Icons.AutoMirrored.Default.KeyboardArrowRight, null)
+                            }
+                        }
                     }
 
                     item(span = { GridItemSpan(maxLineSpan) }) {
@@ -124,10 +164,11 @@ fun TagCardPopup(
 @Composable
 private fun Profile(
     name: String,
+    modifier: Modifier = Modifier,
 ) {
     Text(
         text = name,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         textAlign = TextAlign.Center,
     )
 }

@@ -14,12 +14,39 @@ fun Route.public() {
     /**
      * @description get random image
      */
-    get<OhMyRouting.Random> {
-        PicStorage.weightRandom()?.let {
-            call.respondBytes {
-                it.readBytes()
-            }
+    get<OhMyRouting.Random> { req ->
+        if (req.illustratorIds == null && req.tags == null) {
+            PicStorage.weightRandom()?.let {
+                call.respondBytes {
+                    it.readBytes()
+                }
+            } ?: return@get call.respond(HttpStatusCode.NotFound)
+        }
+
+        val illustratorFilter =
+            req.illustratorIds?.let { OhMyRouting.Manage.Pic.IllustratorFilter.Ids(it) }
+                ?: OhMyRouting.Manage.Pic.IllustratorFilter.Any
+        val tagFilter = req.tags?.let { OhMyRouting.Manage.Pic.TagFilter.All(it) }
+            ?: OhMyRouting.Manage.Pic.TagFilter.Any
+        // TODO:: cache
+        StorageDB.randomPic(
+            StorageDB.dbs.map { it.nameNoEx }.toSet(),
+            1,
+            illustratorFilter,
+            tagFilter,
+        ).firstNotNullOfOrNull { (storageLabel, pics) ->
+            if (pics.isEmpty()) return@get call.respond(HttpStatusCode.NotFound)
+
+            PicStorage.byKey(
+                label = storageLabel,
+                pics.first().storeKey
+            )?.let {
+                call.respondBytes {
+                    it.readBytes()
+                }
+            } ?: call.respond(HttpStatusCode.NotFound)
         } ?: call.respond(HttpStatusCode.NotFound)
+
     }
 
     get<OhMyRouting.Pic.Id> { req ->

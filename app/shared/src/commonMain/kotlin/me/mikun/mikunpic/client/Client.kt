@@ -189,6 +189,31 @@ object Client {
         }
         .asAny<OhMyRouting.Manage.Pic.Random.Response>()
 
+    suspend fun listPic(
+        count: Int,
+        page: Int = 1,
+        illustratorFilter: OhMyRouting.Manage.Pic.Random.IllustratorFilter =
+            OhMyRouting.Manage.Pic.Random.IllustratorFilter.Any,
+        tagFilter: OhMyRouting.Manage.Pic.Random.TagFilter =
+            OhMyRouting.Manage.Pic.Random.TagFilter.Any,
+        storageLabels: List<String> = emptyList(),
+    ) = httpClient
+        .post(
+            OhMyRouting.Manage.Pic.List(),
+        ) {
+            contentType(ContentType.Application.Json)
+            setBody(
+                OhMyRouting.Manage.Pic.List.Body(
+                    count = count,
+                    page = page,
+                    illustrator = illustratorFilter,
+                    tag = tagFilter,
+                    storageLabels = storageLabels,
+                ),
+            )
+        }
+        .asAny<OhMyRouting.Manage.Pic.List.Response>()
+
     suspend fun updatePic(
         storageLabel: String,
         pic: PicUpdate,

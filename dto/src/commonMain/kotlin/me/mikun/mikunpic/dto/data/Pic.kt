@@ -14,7 +14,7 @@ data class Pic constructor(
     @SerialName("tags")
     val tags: List<String> = emptyList(),
     @SerialName("store_key")
-    val storeKey: String? = null,
+    val storeKey: String,
 ) {
     fun update() = PicUpdate(
         id = this.id,

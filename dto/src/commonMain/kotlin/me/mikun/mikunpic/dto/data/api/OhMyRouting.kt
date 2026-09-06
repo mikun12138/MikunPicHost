@@ -12,7 +12,12 @@ interface OhMyRouting {
     companion object
 
     @Resource("/random")
-    class Random : OhMyRouting {
+    class Random(
+        @SerialName("illustrator_id")
+        val illustratorIds: List<Int>? = null,
+        @SerialName("tag")
+        val tags: List<String>? = null,
+    ) : OhMyRouting {
         override val parent = OhMyRouting.Companion
     }
 
@@ -136,45 +141,9 @@ interface OhMyRouting {
                 override val parent = Pic()
             }
 
-            @Resource("/random")
-            class Random : OhMyRouting {
+            @Resource("/list")
+            class List : OhMyRouting {
                 override val parent = Pic()
-
-                @Serializable
-                sealed interface IllustratorFilter {
-                    @Serializable
-                    @SerialName("any")
-                    data object Any : IllustratorFilter
-
-                    @Serializable
-                    @SerialName("none")
-                    data object None : IllustratorFilter
-
-                    @Serializable
-                    @SerialName("ids")
-                    data class Ids(
-                        @SerialName("ids")
-                        val ids: List<Int>,
-                    ) : IllustratorFilter
-                }
-
-                @Serializable
-                sealed interface TagFilter {
-                    @Serializable
-                    @SerialName("any")
-                    data object Any : TagFilter
-
-                    @Serializable
-                    @SerialName("none")
-                    data object None : TagFilter
-
-                    @Serializable
-                    @SerialName("all")
-                    data class All(
-                        @SerialName("names")
-                        val names: List<String>,
-                    ) : TagFilter
-                }
 
                 @Serializable
                 data class Body(
@@ -185,7 +154,33 @@ interface OhMyRouting {
                     @SerialName("tag")
                     val tag: TagFilter = TagFilter.Any,
                     @SerialName("storage_label")
-                    val storageLabels: List<String> = emptyList(),
+                    val storageLabels: kotlin.collections.List<String> = emptyList(),
+                    @SerialName("page")
+                    val page: Int = 1,
+                )
+
+                @Serializable
+                data class Response(
+                    @SerialName("pics_by_storage")
+                    val label2Pics: Map<String, kotlin.collections.List<me.mikun.mikunpic.dto.data.Pic>> = emptyMap(),
+                )
+            }
+
+
+            @Resource("/random")
+            class Random : OhMyRouting {
+                override val parent = Pic()
+
+                @Serializable
+                data class Body(
+                    @SerialName("count")
+                    val count: Int,
+                    @SerialName("illustrator")
+                    val illustrator: IllustratorFilter = IllustratorFilter.Any,
+                    @SerialName("tag")
+                    val tag: TagFilter = TagFilter.Any,
+                    @SerialName("storage_label")
+                    val storageLabels: kotlin.collections.List<String> = emptyList(),
                 )
 
                 @Serializable
@@ -193,6 +188,42 @@ interface OhMyRouting {
                     @SerialName("pics_by_storage")
                     val label2Pics: Map<String, Set<me.mikun.mikunpic.dto.data.Pic>> = emptyMap(),
                 )
+            }
+
+            @Serializable
+            sealed interface IllustratorFilter {
+                @Serializable
+                @SerialName("any")
+                data object Any : IllustratorFilter
+
+                @Serializable
+                @SerialName("none")
+                data object None : IllustratorFilter
+
+                @Serializable
+                @SerialName("ids")
+                data class Ids(
+                    @SerialName("ids")
+                    val ids: kotlin.collections.List<Int>,
+                ) : IllustratorFilter
+            }
+
+            @Serializable
+            sealed interface TagFilter {
+                @Serializable
+                @SerialName("any")
+                data object Any : TagFilter
+
+                @Serializable
+                @SerialName("none")
+                data object None : TagFilter
+
+                @Serializable
+                @SerialName("all")
+                data class All(
+                    @SerialName("names")
+                    val names: kotlin.collections.List<String>,
+                ) : TagFilter
             }
 
             @Resource("/update")

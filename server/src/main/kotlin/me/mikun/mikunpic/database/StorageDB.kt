@@ -7,6 +7,7 @@ import me.mikun.mikunpic.database.table.TagTable
 import me.mikun.mikunpic.database.table.relation.Illustrator2PlatformKeysTable
 import me.mikun.mikunpic.database.table.relation.Pic2IllustratorTable
 import me.mikun.mikunpic.database.table.relation.Pic2TagsTable
+import me.mikun.mikunpic.ServerAppDirs
 import me.mikun.mikunpic.dto.data.Illustrator
 import me.mikun.mikunpic.dto.data.Pic
 import me.mikun.mikunpic.dto.data.PicCreate
@@ -34,6 +35,7 @@ import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.upsert
+import java.io.File
 import java.sql.Connection
 import kotlin.let
 import kotlin.use
@@ -319,11 +321,36 @@ class StorageDB(
             val id: String,
             val storageLabel: String,
             val filename: String,
+            val storeKey: String,
             val illustratorId: Int?,
             val illustratorName: String?,
             val platformKeyMap: MutableMap<Platform, String> = linkedMapOf(),
             val tags: MutableSet<String> = linkedSetOf(),
         )
+
+        private fun MutablePic.toPic(): Pic = Pic(
+            id = id,
+            filename = filename,
+            illustrator = illustratorId?.let { illustratorId ->
+                illustratorName?.let { illustratorName ->
+                    Illustrator(
+                        id = illustratorId,
+                        name = illustratorName,
+                        platformKeyMap = platformKeyMap.toMap(),
+                    )
+                }
+            },
+            tags = tags.toList(),
+            storeKey = storeKey,
+        )
+
+        private fun Map<Pair<String, Int>, MutablePic>.toPicsByStorage(): Map<String, List<Pic>> {
+            val picsByStorage = linkedMapOf<String, MutableList<Pic>>()
+            values.forEach { pic ->
+                picsByStorage.getOrPut(pic.storageLabel) { mutableListOf() } += pic.toPic()
+            }
+            return picsByStorage.mapValues { (_, pics) -> pics.toList() }
+        }
 
         private data class PreparedSql(
             val sql: String,
@@ -339,28 +366,36 @@ class StorageDB(
             postfix = ")",
         )
 
+        private fun storageDbPath(storageLabel: String): String = File(
+            ServerAppDirs.current.data,
+            "databases/storage/$storageLabel.db",
+        ).path
+
+        private fun sqliteLiteral(value: String): String =
+            "'${value.replace("'", "''")}'"
+
         private fun attachSql(storage: AttachedStorage) = PreparedSql(
             sql = """
                 ATTACH DATABASE ?
                 AS ${storage.alias}
             """.trimIndent(),
             args = listOf(
-                stringArg("./data/databases/storage/${storage.label}.db"),
+                stringArg(storageDbPath(storage.label)),
             ),
         )
 
         private fun detachSql(storage: AttachedStorage) = "DETACH DATABASE ${storage.alias}"
 
         private fun illustratorFilterSql(
-            illustratorFilter: OhMyRouting.Manage.Pic.Random.IllustratorFilter,
+            illustratorFilter: OhMyRouting.Manage.Pic.IllustratorFilter,
         ): PreparedSql? = when (illustratorFilter) {
-            OhMyRouting.Manage.Pic.Random.IllustratorFilter.Any -> null
+            OhMyRouting.Manage.Pic.IllustratorFilter.Any -> null
 
-            OhMyRouting.Manage.Pic.Random.IllustratorFilter.None -> PreparedSql(
+            OhMyRouting.Manage.Pic.IllustratorFilter.None -> PreparedSql(
                 sql = "pic2illustrator.illustrator_id IS NULL",
             )
 
-            is OhMyRouting.Manage.Pic.Random.IllustratorFilter.Ids -> {
+            is OhMyRouting.Manage.Pic.IllustratorFilter.Ids -> {
                 val illustratorIds = illustratorFilter.ids.toSet()
                 if (illustratorIds.isEmpty()) {
                     null
@@ -375,11 +410,11 @@ class StorageDB(
 
         private fun tagFilterSql(
             storage: AttachedStorage,
-            tagFilter: OhMyRouting.Manage.Pic.Random.TagFilter,
+            tagFilter: OhMyRouting.Manage.Pic.TagFilter,
         ): PreparedSql? = when (tagFilter) {
-            OhMyRouting.Manage.Pic.Random.TagFilter.Any -> null
+            OhMyRouting.Manage.Pic.TagFilter.Any -> null
 
-            OhMyRouting.Manage.Pic.Random.TagFilter.None -> PreparedSql(
+            OhMyRouting.Manage.Pic.TagFilter.None -> PreparedSql(
                 sql = """
                     NOT EXISTS (
                         SELECT 1
@@ -389,23 +424,48 @@ class StorageDB(
                 """.trimIndent(),
             )
 
-            is OhMyRouting.Manage.Pic.Random.TagFilter.All -> {
-                val tagNames = tagFilter.names.filter { it.isNotEmpty() }.toSet()
-                if (tagNames.isEmpty()) {
-                    null
-                } else {
+            is OhMyRouting.Manage.Pic.TagFilter.All -> {
+                val (requiredNames, excludedNames) = tagFilter.splitTagNames()
+                val conditions = mutableListOf<String>()
+                val args = mutableListOf<Pair<IColumnType<*>, Any?>>()
+
+                if (requiredNames.isNotEmpty()) {
+                    conditions += """
+                        (
+                            SELECT COUNT(DISTINCT tag.name)
+                            FROM ${storage.alias}.pics2tags AS pic_tag
+                            JOIN tag
+                                ON tag.id = pic_tag.tag_id
+                            WHERE pic_tag.pic_id = pic.id
+                                AND tag.name IN ${placeholders(requiredNames.size)}
+                        ) = ?
+                    """.trimIndent()
+                    args += requiredNames.map(::stringArg)
+                    args += intArg(requiredNames.size)
+                }
+
+                if (excludedNames.isNotEmpty()) {
+                    conditions += """
+                        NOT EXISTS (
+                            SELECT 1
+                            FROM ${storage.alias}.pics2tags AS pic_tag
+                            JOIN tag
+                                ON tag.id = pic_tag.tag_id
+                            WHERE pic_tag.pic_id = pic.id
+                                AND tag.name IN ${placeholders(excludedNames.size)}
+                        )
+                    """.trimIndent()
+                    args += excludedNames.map(::stringArg)
+                }
+
+                conditions.takeIf { it.isNotEmpty() }?.let {
                     PreparedSql(
-                        sql = """
-                            (
-                                SELECT COUNT(DISTINCT tag.name)
-                                FROM ${storage.alias}.pics2tags AS pic_tag
-                                JOIN tag
-                                    ON tag.id = pic_tag.tag_id
-                                WHERE pic_tag.pic_id = pic.id
-                                    AND tag.name IN ${placeholders(tagNames.size)}
-                            ) = ?
-                        """.trimIndent(),
-                        args = tagNames.map(::stringArg) + intArg(tagNames.size),
+                        sql = it.joinToString(
+                            prefix = "(",
+                            separator = "\nAND\n",
+                            postfix = ")",
+                        ),
+                        args = args,
                     )
                 }
             }
@@ -413,8 +473,8 @@ class StorageDB(
 
         private fun candidateSql(
             storage: AttachedStorage,
-            illustratorFilter: OhMyRouting.Manage.Pic.Random.IllustratorFilter,
-            tagFilter: OhMyRouting.Manage.Pic.Random.TagFilter,
+            illustratorFilter: OhMyRouting.Manage.Pic.IllustratorFilter,
+            tagFilter: OhMyRouting.Manage.Pic.TagFilter,
         ): PreparedSql {
             val args = mutableListOf(stringArg(storage.label))
             val conditions = buildList {
@@ -448,6 +508,7 @@ class StorageDB(
                         ? AS storage_label,
                         pic.id AS pic_id,
                         pic.filename AS filename,
+                        pic.store_key AS store_key,
                         pic2illustrator.illustrator_id AS illustrator_id
                     FROM ${storage.alias}.pic
                     LEFT JOIN ${storage.alias}.pic2illustrator
@@ -479,11 +540,13 @@ class StorageDB(
             ),
         )
 
-        private fun randomPicSql(
+        private fun picSelectionSql(
             storages: List<AttachedStorage>,
             count: Int,
-            illustratorFilter: OhMyRouting.Manage.Pic.Random.IllustratorFilter,
-            tagFilter: OhMyRouting.Manage.Pic.Random.TagFilter,
+            page: Int,
+            randomOrder: Boolean,
+            illustratorFilter: OhMyRouting.Manage.Pic.IllustratorFilter,
+            tagFilter: OhMyRouting.Manage.Pic.TagFilter,
         ): PreparedSql {
             val candidates = storages.map { storage ->
                 candidateSql(
@@ -493,9 +556,49 @@ class StorageDB(
                 )
             }
             val pickedTags = storages.map(::pickedTagsSql)
+            val offset = (page.coerceAtLeast(1) - 1) * count
             val args = candidates.flatMap { it.args } +
                 intArg(count) +
+                (if (randomOrder) emptyList() else listOf(intArg(offset))) +
                 pickedTags.flatMap { it.args }
+
+            val pickedSql = if (randomOrder) {
+                """
+                    picked AS (
+                        SELECT
+                            storage_label,
+                            pic_id,
+                            filename,
+                            store_key,
+                            illustrator_id,
+                            random() AS sort_key
+                        FROM candidate
+                        ORDER BY sort_key
+                        LIMIT ?
+                    ),
+                """.trimIndent()
+            } else {
+                """
+                    picked AS (
+                        SELECT
+                            storage_label,
+                            pic_id,
+                            filename,
+                            store_key,
+                            illustrator_id
+                        FROM candidate
+                        ORDER BY storage_label, pic_id
+                        LIMIT ?
+                        OFFSET ?
+                    ),
+                """.trimIndent()
+            }
+
+            val pickedOrder = if (randomOrder) {
+                "picked.sort_key"
+            } else {
+                "picked.storage_label, picked.pic_id"
+            }
 
             return PreparedSql(
                 sql = """
@@ -506,17 +609,7 @@ class StorageDB(
                     ) { it.sql }
                 }
                     ),
-                    picked AS (
-                        SELECT
-                            storage_label,
-                            pic_id,
-                            filename,
-                            illustrator_id,
-                            random() AS sort_key
-                        FROM candidate
-                        ORDER BY sort_key
-                        LIMIT ?
-                    ),
+                    $pickedSql
                     picked_tags AS (
                         ${
                     pickedTags.joinToString(
@@ -528,6 +621,7 @@ class StorageDB(
                         picked.storage_label,
                         picked.pic_id,
                         picked.filename,
+                        picked.store_key,
                         picked.illustrator_id,
                         illustrator.name AS illustrator_name,
                         platform_key.platform AS platform,
@@ -543,18 +637,20 @@ class StorageDB(
                     LEFT JOIN picked_tags
                         ON picked_tags.storage_label = picked.storage_label
                             AND picked_tags.pic_id = picked.pic_id
-                    ORDER BY picked.sort_key
+                    ORDER BY $pickedOrder
                 """.trimIndent(),
                 args = args,
             )
         }
 
-        suspend fun randomPic(
+        private suspend fun queryPics(
             storageLabels: Set<String>,
             count: Int,
-            illustratorFilter: OhMyRouting.Manage.Pic.Random.IllustratorFilter,
-            tagFilter: OhMyRouting.Manage.Pic.Random.TagFilter = OhMyRouting.Manage.Pic.Random.TagFilter.Any,
-        ): Map<String, Set<Pic>> {
+            page: Int,
+            randomOrder: Boolean,
+            illustratorFilter: OhMyRouting.Manage.Pic.IllustratorFilter,
+            tagFilter: OhMyRouting.Manage.Pic.TagFilter = OhMyRouting.Manage.Pic.TagFilter.Any,
+        ): Map<String, List<Pic>> {
             if (count <= 0) return emptyMap()
 
             val storageLabels = storageLabels.filter { it.isNotEmpty() }
@@ -586,9 +682,11 @@ class StorageDB(
                         attached += storage
                     }
 
-                    val preparedSql = randomPicSql(
+                    val preparedSql = picSelectionSql(
                         storages = attachedStorages,
                         count = count,
+                        page = page,
+                        randomOrder = randomOrder,
                         illustratorFilter = illustratorFilter,
                         tagFilter = tagFilter,
                     )
@@ -609,6 +707,7 @@ class StorageDB(
                                     id = picId.toString(),
                                     storageLabel = storageLabel,
                                     filename = resultSet.getString("filename"),
+                                    storeKey = resultSet.getString("store_key"),
                                     illustratorId = (resultSet.getObject("illustrator_id") as? Number)?.toInt(),
                                     illustratorName = resultSet.getString("illustrator_name"),
                                 )
@@ -625,25 +724,7 @@ class StorageDB(
                             resultSet.getString("tag_name")?.let { pic.tags += it }
                         }
 
-                        val picsByStorage = linkedMapOf<String, MutableSet<Pic>>()
-                        result.values.forEach { pic ->
-                            picsByStorage.getOrPut(pic.storageLabel) { linkedSetOf() } += Pic(
-                                id = pic.id,
-                                filename = pic.filename,
-                                illustrator = pic.illustratorId?.let { illustratorId ->
-                                    pic.illustratorName?.let { illustratorName ->
-                                        Illustrator(
-                                            id = illustratorId,
-                                            name = illustratorName,
-                                            platformKeyMap = pic.platformKeyMap.toMap(),
-                                        )
-                                    }
-                                },
-                                tags = pic.tags.toList(),
-                            )
-                        }
-
-                        picsByStorage.mapValues { (_, pics) -> pics.toSet() }
+                        result.toPicsByStorage()
                     }.orEmpty()
                 } finally {
                     attached.asReversed().forEach { storage ->
@@ -655,15 +736,80 @@ class StorageDB(
             }
         }
 
+        suspend fun randomPic(
+            storageLabels: Set<String>,
+            count: Int,
+            illustratorFilter: OhMyRouting.Manage.Pic.IllustratorFilter,
+            tagFilter: OhMyRouting.Manage.Pic.TagFilter = OhMyRouting.Manage.Pic.TagFilter.Any,
+        ): Map<String, Set<Pic>> = queryPics(
+            storageLabels = storageLabels,
+            count = count,
+            page = 0,
+            randomOrder = true,
+            illustratorFilter = illustratorFilter,
+            tagFilter = tagFilter,
+        ).mapValues { (_, pics) -> pics.toSet() }
+
+        suspend fun listPic(
+            storageLabels: Set<String>,
+            count: Int,
+            page: Int,
+            illustratorFilter: OhMyRouting.Manage.Pic.IllustratorFilter,
+            tagFilter: OhMyRouting.Manage.Pic.TagFilter = OhMyRouting.Manage.Pic.TagFilter.Any,
+        ): Map<String, List<Pic>> = queryPics(
+            storageLabels = storageLabels,
+            count = count,
+            page = page,
+            randomOrder = false,
+            illustratorFilter = illustratorFilter,
+            tagFilter = tagFilter,
+        )
+
         suspend fun backup() {
             dbs.forEach { db ->
                 (db.db.connector().connection as Connection).use { connection ->
                     connection.createStatement().use { statement ->
-                        val sql = "VACUUM INTO './data/databases/${db.db.name}.db.bak'"
+                        val sql = "VACUUM INTO ${sqliteLiteral(
+                            File(
+                                ServerAppDirs.current.data,
+                                "databases/${db.nameNoEx}.db.bak",
+                            ).path,
+                        )}"
                         statement.executeUpdate(sql)
                     }
                 }
             }
         }
     }
+}
+
+
+data class TagFilterNames(
+    val required: Set<String>,
+    val excluded: Set<String>,
+)
+
+fun OhMyRouting.Manage.Pic.TagFilter.All.splitTagNames(): TagFilterNames {
+    val required = linkedSetOf<String>()
+    val excluded = linkedSetOf<String>()
+
+    names.forEach { rawName ->
+        if (rawName.isBlank()) {
+            return@forEach
+        }
+
+        if (rawName.startsWith("!")) {
+            val excludedName = rawName.removePrefix("!")
+            if (excludedName.isNotBlank()) {
+                excluded += excludedName
+            }
+        } else {
+            required += rawName
+        }
+    }
+
+    return TagFilterNames(
+        required = required,
+        excluded = excluded,
+    )
 }

@@ -56,7 +56,7 @@ fun IllustratorCardPopup(
 
     val images by produceState(emptyList()) {
         value = buildMap {
-            val label2Pics = Client.randomPic(
+            val label2Pics = Client.listPic(
                 count = Int.MAX_VALUE,
                 illustratorFilter = illustrator.id?.let { IllustratorFilter.Ids(listOf(it)) }
                     ?: IllustratorFilter.Any,

@@ -1,6 +1,7 @@
 package me.mikun.mikunpic.component.image
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -22,6 +23,7 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import coil3.size.Precision
 import coil3.size.Size
+import kotlinx.coroutines.delay
 
 @Composable
 fun SizeCachedImage(
@@ -49,10 +51,28 @@ fun SizeCachedImage(
     colorFilter: ColorFilter? = null,
     filterQuality: FilterQuality = DefaultFilterQuality,
     clipToBounds: Boolean = true,
+    sizeChangeDebounceMillis: Long = 120L,
     requestBuilder: ImageRequest.Builder.(IntSize) -> Unit = {},
 ) {
     val localPlatformContext = LocalPlatformContext.current
     var imageSize by remember(data) { mutableStateOf(IntSize.Zero) }
+    var pendingImageSize by remember(data) { mutableStateOf(IntSize.Zero) }
+
+    LaunchedEffect(pendingImageSize, sizeChangeDebounceMillis) {
+        if (
+            pendingImageSize.width <= 0 ||
+            pendingImageSize.height <= 0 ||
+            pendingImageSize == imageSize
+        ) {
+            return@LaunchedEffect
+        }
+
+        if (sizeChangeDebounceMillis > 0) {
+            delay(sizeChangeDebounceMillis)
+        }
+
+        imageSize = pendingImageSize
+    }
 
     val imageRequest = remember(
         localPlatformContext,
@@ -96,8 +116,15 @@ fun SizeCachedImage(
         contentDescription = contentDescription,
         modifier = modifier
             .onSizeChanged {
-                if (it != imageSize) {
+                if (it.width <= 0 || it.height <= 0) {
+                    return@onSizeChanged
+                }
+
+                if (imageSize == IntSize.Zero) {
                     imageSize = it
+                    pendingImageSize = it
+                } else if (it != pendingImageSize) {
+                    pendingImageSize = it
                 }
             },
         placeholder = placeholder,
